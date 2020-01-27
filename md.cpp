@@ -216,7 +216,7 @@ void gmx::Integrator::do_md()
     // Most global communnication stages don't propagate mdrun
     // signals, and will use this object to achieve that.
     SimulationSignaller nullSignaller(nullptr, nullptr, nullptr, false, false);
-    printf("@@@@@@@@@@@@@@@@                HI I AM TRIAL          @@@@@@@@@@@@@@@@@@@");
+    printf("@@@@@@@@@@@@@@@@                HI I AM MEENAL          @@@@@@@@@@@@@@@@@@@");
     if (!mdrunOptions.writeConfout)
     {
         // This is on by default, and the main known use case for
