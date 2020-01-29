@@ -216,7 +216,9 @@ void gmx::Integrator::do_md()
     // Most global communnication stages don't propagate mdrun
     // signals, and will use this object to achieve that.
     SimulationSignaller nullSignaller(nullptr, nullptr, nullptr, false, false);
-    printf("@@@@@@@@@@@@@@@@                HI I AM MEENAL          @@@@@@@@@@@@@@@@@@@");
+    
+//    printf("@@@@@@@@@@@@@@@@@@    Hi I am Shivani.       @@@@@@@@@@@@@@@@@@@@@@@@\n");
+    fprintf(fplog,"@@@@@@@@@@@@@@@@@@     Hi I am Shivani.       @@@@@@@@@@@@@@@@@@@@@@@@\n");
     if (!mdrunOptions.writeConfout)
     {
         // This is on by default, and the main known use case for
@@ -613,20 +615,6 @@ void gmx::Integrator::do_md()
     bSumEkinhOld     = FALSE;
     bExchanged       = FALSE;
     bNeedRepartition = FALSE;
-    
-  /******************************************************************
-   *
-   *                Done by mj
-   *
-   ********************************************************************/
-
-    double running_lambda = state->lambda[0], bias_k0=10.0, bias_k1=25.0, force=0.0, mass=20.0;
-    double min_lambda =0.5, max_lambda = 1.0;
-    double running_v_lambda =0.0;
-    double step_size = 0.002;    
-
-  /**********************************************************************/
-
 
     bool simulationsShareState = false;
     int  nstSignalComm         = nstglobalcomm;
@@ -643,6 +631,26 @@ void gmx::Integrator::do_md()
         // simulations, not just within simulations.
         // TODO: Make algorithm initializers set these flags.
         simulationsShareState = useReplicaExchange || usingEnsembleRestraints || awhUsesMultiSim;
+
+
+/* --------------------------------    Editted by Shivani    ------------------------------------------------------- */
+
+//    printf("@@@@@@@@@@@@@@@@@@    Hi I am MD loop.       @@@@@@@@@@@@@@@@@@@@@@@@\n");
+//    fprintf(fplog,"@@@@@@@@@@@@@@@@@@     Hi I am MD loop.       @@@@@@@@@@@@@@@@@@@@@@@@\n");
+//    printf("@@@@@@@@@@@@@@@@@@    Hi I am efptNR = %d       @@@@@@@@@@@@@@@@@@@@@@@@\n",efptNR);
+//    printf("lam0=%8.2f,%8.2f,%8.2f,%8.2f,%8.2f,%8.2f,%8.2f\n",lam0[0],lam0[1],lam0[2],lam0[3],lam0[4],lam0[5],lam0[6]);
+//    for (i = 0; i < efptNR; i++)    //@@@
+//       printf("lam0=%8.2f\n",lam0[i]);   //@@@
+//    printf("\n\n");     //@@@
+   // for (step = 0; step < ir->nsteps ; step++)   
+   // {
+   //    lam0[1] = lam0[1] + 1.0/(ir->nsteps);    
+   //    printf("%" PRId64 "\n", step);
+   //    printf("lam0=%8.2f\n",lam0[1]);
+   //    printf("\n\n");
+   // }
+    
+/* --------------------------------    Editted by Shivani    ------------------------------------------------------- */
 
         if (simulationsShareState)
         {
@@ -694,24 +702,33 @@ void gmx::Integrator::do_md()
 
     /* and stop now if we should */
     bLastStep = (bLastStep || (ir->nsteps >= 0 && step_rel > ir->nsteps));
-   
-    /* $$$$$$$$$$$$$$$$$$$ Calculating force and  applying restraints @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*///done by mj
+/*   ------------------------------------- Edited by Shivani   ---------------------------------*/
+     real v_lambda = 0.0, m_lambda = 29.0, time_step = 0.002, bias_k0 = 100.0, bias_k1 = 10.0;
+     real max_lambda = 0.95, min_lambda = 0.5;
+     real running_v_lambda, f_lambda, ke, pe, te, ke_nuclear, pe_nuclear, ke_lambda; 
+//     state_global->lambda[i] = initial_lambda;
+     running_v_lambda = v_lambda;
+//    for (i = 0; i < efptNR; i++)
+//    {
+//       state_global->lambda[i] = 0.00;
+//    }
 
-       //  if (running_lambda < min_lambda )
-        // {
-         force =-enerd->term[F_DVDL]- bias_k0*(running_lambda - min_lambda );
-        // }
-         //else if (running_lambda > max_lambda )
-        // {
-         //force = -enerd->term[F_DVDL] - bias_k1*(running_lambda - max_lambda);
-        // }
-        // else
-        // {
-         // force =-enerd->term[F_DVDL];
-        // }
- 
+/*   -------------------------------------------------------------------------------------------*/
     while (!bLastStep)
     {
+/*   ------------------------------------- Edited by Shivani   ---------------------------------*/
+       if ((step % 5000) == 0 && step != 0)
+       {
+//          printf("\n" "%" PRId64 "\n", step);                          //
+//          printf("\n\n");                                              //
+          for (i = 0; i < efptNR; i++) 
+          {
+//             printf("lam0=%8.2f\t",lam0[i]);   
+        //     state_global->lambda[i] = state_global->lambda[i] + 0.1;  //
+//             printf("state_global=%8.2f\t\n", state_global->lambda[i]);
+          }                                                            //
+       }                                                               //
+/*   -------------------------------------------------------------------------------------------*/
 
         /* Determine if this is a neighbor search step */
         bNStList = (ir->nstlist > 0  && step % ir->nstlist == 0);
@@ -725,14 +742,13 @@ void gmx::Integrator::do_md()
                            *ir, fr, *state,
                            wcycle,
                            step, step_rel,
-
                            &bPMETunePrinting);
         }
 
         wallcycle_start(wcycle, ewcSTEP);
 
-        bLastStep = (step_rel == ir->nsteps);// matlab ki cheez --done by mj
-        t         = t0 + step*ir->delta_t;// matlab ki cheez --done by mj
+        bLastStep = (step_rel == ir->nsteps);
+        t         = t0 + step*ir->delta_t;
 
         // TODO Refactor this, so that nstfep does not need a default value of zero
         if (ir->efep != efepNO || ir->bSimTemp)
@@ -901,7 +917,8 @@ void gmx::Integrator::do_md()
             /* The coordinates (x) are shifted (to get whole molecules)
              * in do_force.
              * This is parallellized as well, and does communication too.
-             * Check comments in sim_util.c*/
+             * Check comments in sim_util.c
+             */
             do_force(fplog, cr, ms, ir, awh.get(), enforcedRotation,
                      step, nrnb, wcycle, top, groups,
                      state->box, state->x.arrayRefWithPadding(), &state->hist,
@@ -910,8 +927,23 @@ void gmx::Integrator::do_md()
                      fr, ppForceWorkload, vsite, mu_tot, t, ed ? ed->getLegacyED() : nullptr,
                      (bNS ? GMX_FORCE_NS : 0) | force_flags,
                      ddOpenBalanceRegion, ddCloseBalanceRegion);
-        }
+/*------------------------------             Edited by Shivani      -------------------------*/
+            sum_dhdl(enerd, state->lambda, ir->fepvals);                                       
+          //  if (state->lambda[0] < min_lambda)                                                 
+          //  { 
+               f_lambda = - enerd->term[F_DVDL] - bias_k0*(state->lambda[0] - min_lambda);     
+          //  }
+            //   if (state->lambda[0] > max_lambda)                                              
+            //{ 
+              // f_lambda = - enerd->term[F_DVDL] - bias_k1*(state->lambda[0] - max_lambda);     
+            //}
+            // else                                                                               
+            // {
+//               f_lambda = - enerd->term[F_DVDL];                                               
+           // }
 
+/*------------------------------             Edited by Shivani      -------------------------*/
+        }
         if (EI_VV(ir->eI) && !startingFromCheckpoint)
         /*  ############### START FIRST UPDATE HALF-STEP FOR VV METHODS############### */
         {
@@ -934,10 +966,10 @@ void gmx::Integrator::do_md()
                 /* this is for NHC in the Ekin(t+dt/2) version of vv */
                 trotter_update(ir, step, ekind, enerd, state, total_vir, mdatoms, &MassQ, trotter_seq, ettTSEQ1);
             }
-             //@@@@@@@@@@@@@@@@@@ This update_coords is not being executed during mdrun @@@@@@@@-done by mj
-            update_coords(step, ir, mdatoms, state, f.arrayRefWithPadding(), fcd,
-                          ekind, M, upd, etrtVELOCITY1, cr, constr);
 
+            update_coords(step, ir, mdatoms, state, f.arrayRefWithPadding(), fcd,
+                          ekind, M, upd, etrtVELOCITY1,
+                          cr, constr);
             wallcycle_stop(wcycle, ewcUPDATE);
             constrain_velocities(step, nullptr,
                                  state,
@@ -1052,7 +1084,6 @@ void gmx::Integrator::do_md()
             /* sum up the foreign energy and dhdl terms for vv.  currently done every step so that dhdl is correct in the .edr */
             if (ir->efep != efepNO)
             {
-                //"$$$$$$$$$$$$$$$$$$$$$$$ This sum_dhdl() is not  working @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@--done by mj
                 sum_dhdl(enerd, state->lambda, ir->fepvals);
             }
         }
@@ -1158,7 +1189,6 @@ void gmx::Integrator::do_md()
         if (EI_VV(ir->eI))
         {
             /* velocity half-step update */
-           // @@@@@@@@@@@@@@@@@@@@      This is not being executed     @@@@@@@@@@@@@@@@@@@@@@@@@@
             update_coords(step, ir, mdatoms, state, f.arrayRefWithPadding(), fcd,
                           ekind, M, upd, etrtVELOCITY2,
                           cr, constr);
@@ -1179,17 +1209,29 @@ void gmx::Integrator::do_md()
             }
             copy_rvecn(as_rvec_array(state->x.data()), cbuf, 0, state->natoms);
         }
-        /* $$$$$$$$$$$$$$$$$$$$$$$$$$$ This update_coords is being executed @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ --done by mj*/
-       
-/*******************************************************
-*
-*               Done by mj
-***********************************************************/
-            
-         running_v_lambda = running_v_lambda + (step_size *(force/(2*mass)));//Half-velocity update
-         running_lambda = running_lambda + (step_size*running_v_lambda);// position update
+
         update_coords(step, ir, mdatoms, state, f.arrayRefWithPadding(), fcd,
                       ekind, M, upd, etrtPOSITION, cr, constr);
+/*-----------------------------                   Edited by Shivani    ----------------------------------------*/
+        running_v_lambda = running_v_lambda + time_step * 0.5 * (f_lambda / m_lambda); 
+        state->lambda[0]   = state->lambda[0] + time_step * running_v_lambda; 
+        sum_dhdl(enerd, state->lambda, ir->fepvals);                              
+//        if (state->lambda[0] < min_lambda)                                               
+  //      {   
+           f_lambda = - enerd->term[F_DVDL] - bias_k0*(state->lambda[0] - min_lambda);   
+  //      }
+     //   if (state->lambda[0] > max_lambda)                                               
+       // {
+         // f_lambda = - enerd->term[F_DVDL] - bias_k1*(state->lambda[0] - min_lambda);   
+        //}
+    //    else                                                                      
+      //  {
+//           f_lambda = - enerd->term[F_DVDL];                                                
+       //   }
+        running_v_lambda = running_v_lambda + time_step * 0.5 * (f_lambda / m_lambda);      
+
+//            printf("%f\n", state->lambda[0]);
+/*-----------------------------                   Edited by Shivani    ----------------------------------------*/
         wallcycle_stop(wcycle, ewcUPDATE);
 
         constrain_coordinates(step, &dvdl_constr, state,
@@ -1221,10 +1263,10 @@ void gmx::Integrator::do_md()
             trotter_update(ir, step, ekind, enerd, state, total_vir, mdatoms, &MassQ, trotter_seq, ettTSEQ4);
             /* now we know the scaling, we can compute the positions again again */
             copy_rvecn(cbuf, as_rvec_array(state->x.data()), 0, state->natoms);
-            
-           /* $$$$$$$$$$$$$$$$$$$$$$$$$$$$  this update_coords is not working @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ */
+
             update_coords(step, ir, mdatoms, state, f.arrayRefWithPadding(), fcd,
                           ekind, M, upd, etrtPOSITION, cr, constr);
+            
             wallcycle_stop(wcycle, ewcUPDATE);
 
             /* do we need an extra constraint here? just need to copy out of as_rvec_array(state->v.data()) to upd->xp? */
@@ -1329,28 +1371,12 @@ void gmx::Integrator::do_md()
         {
             /* Sum up the foreign energy and dhdl terms for md and sd.
                Currently done every step so that dhdl is correct in the .edr */
-            //$$$$$$$$$$$$$$$$$$$$$$$$$$$$  Yeh i am working @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"--done by mj
             sum_dhdl(enerd, state->lambda, ir->fepvals);
-         // $$$$$$$$$$$$$$$$$$$$$$$$$$   Calculating Force @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -- done by mj 
-           //if (running_lambda < min_lambda )
-            //{
-             force =-enerd->term[F_DVDL]- bias_k0*(running_lambda - min_lambda );
-           // }
-            //else if (running_lambda > max_lambda )
-           // {
-           //force = -enerd->term[F_DVDL] - bias_k1*(running_lambda - max_lambda);
-           // }
-            //else
-            // {
-           //force =-enerd->term[F_DVDL];
-            //} 
-
+//                printf("@@@@@@@@@ Hi I am dhdl = %g      @@@@@@@@@@@@@@@\n", enerd->term[F_DVDL]);   // Edited by Shivani.
+            /*  printf("@@@@@@@@@@@@@@@@           Hi I am dhdl     Edited by Shivani       @@@@@@@@@@@@@@@@@");
+                printf("%" PRId64 "\n", step);        */        
         }
-     
-        running_v_lambda = running_v_lambda + (step_size *(force/(2*mass)));//Full-velocity update--done by mj 
-        printf(" %f\t%f\t%f\t\n", t, running_lambda, running_v_lambda);// Printing time, lambda and lambda-dot
 
- 
         update_pcouple_after_coordinates(fplog, step, ir, mdatoms,
                                          pres, force_vir, shake_vir,
                                          parrinellorahmanMu,
@@ -1379,6 +1405,21 @@ void gmx::Integrator::do_md()
             }
             enerd->term[F_ETOT] = enerd->term[F_EPOT] + enerd->term[F_EKIN];
 
+/*---------------       Calculating energies and printing output ----- Edited by Shivani      -----------------------*/
+
+            pe_nuclear = enerd->term[F_EPOT];
+            pe = pe_nuclear + 0.5 * bias_k0 * (state->lambda[0] - min_lambda) * (state->lambda[0] - min_lambda);
+
+            ke_lambda = 0.5 * m_lambda * running_v_lambda * running_v_lambda;
+            ke_nuclear = enerd->term[F_EKIN];
+            ke = ke_nuclear + ke_lambda;
+
+            te = pe + ke;
+//            printf("%e\t%e\t%e\t%e\t%e\n", ke_nuclear, running_v_lambda, running_v_lambda * running_v_lambda, ke_lambda, ke);                     
+            printf("%e\t%e\t%e\t%e\t%e\t%e\n", enerd->term[F_EPOT], enerd->term[F_EKIN], enerd->term[F_ETOT], pe, ke, te);
+
+//            printf("%e\t%e\t%e\n", enerd->term[F_EPOT], enerd->term[F_EKIN], enerd->term[F_ETOT]);
+/*---------------       Calculating energy ----- Edited by Shivani      -----------------------*/
             if (integratorHasConservedEnergyQuantity(ir))
             {
                 if (EI_VV(ir->eI))
@@ -1392,7 +1433,7 @@ void gmx::Integrator::do_md()
             }
             /* #########  END PREPARING EDR OUTPUT  ###########  */
         }
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$    Don't go beyond this point @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ // done by mj
+
         /* Output stuff */
         if (MASTER(cr))
         {
@@ -1409,6 +1450,7 @@ void gmx::Integrator::do_md()
                            ir->fepvals, ir->expandedvals, lastbox,
                            shake_vir, force_vir, total_vir, pres,
                            ekind, mu_tot, constr);
+//                        printf("@@@@@@@@@@@@          Hi I am tmass = %g          @@@@@@@@@@\n", mdatoms->tmass);   // Edited by Shivani
             }
             else
             {
@@ -1588,4 +1630,3 @@ void gmx::Integrator::do_md()
     sfree(enerd);
     sfree(top);
 }
-
